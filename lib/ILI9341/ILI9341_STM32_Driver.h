@@ -83,7 +83,7 @@
 #ifndef ILI9341_STM32_DRIVER_H
 #define ILI9341_STM32_DRIVER_H
 
-#include "stm32f3xx_hal.h"
+#include "User_Conf.h"
 #include "main.h"
 
 #define ILI9341_SCREEN_HEIGHT 240
@@ -186,21 +186,6 @@
 #define ILI9341_PWSEQCTRL 0xED     /* [8.4.6] Power on sequence control */
 #define ILI9341_GAM3CTRL 0xF2      /* [8.4.7] Enable 3 gamma control */
 #define ILI9341_PUMPRATIO 0xF7     /* [8.4.8] Pump ratio control */
-
-//SPI INSTANCE
-#define HSPI_INSTANCE &hspi3
-
-//CHIP SELECT PIN AND PORT, STANDARD GPIO
-#define LCD_CS_PORT LCD_CS_GPIO_Port
-#define LCD_CS_PIN LCD_CS_Pin
-#define CS_Pin LCD_CS_Pin
-//DATA COMMAND PIN AND PORT, STANDARD GPIO
-#define LCD_DC_PORT LCD_DC_GPIO_Port
-#define LCD_DC_PIN LCD_DC_Pin
-#define DC_Pin LCD_DC_Pin
-//RESET PIN AND PORT, STANDARD GPIO
-#define LCD_RST_PORT RST_GPIO_Port
-#define LCD_RST_PIN RST_Pin
 
 #define BURST_MAX_SIZE 500
 

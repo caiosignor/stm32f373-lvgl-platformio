@@ -78,8 +78,7 @@ void lv_setup()
 
     //inicializa os buffers internos.
     static lv_color_t buf_1[LV_HOR_RES_MAX * 10];
-    static lv_color_t buf_2[LV_HOR_RES_MAX * 10];
-    lv_disp_buf_init(&disp_buff, buf_1, buf_2, LV_HOR_RES_MAX * 10);
+    lv_disp_buf_init(&disp_buff, buf_1, NULL, LV_HOR_RES_MAX * 10);
 
     // //informações do driver do display; contém as callbacks necessárias para interagir com o display;
     lv_disp_drv_t disp_drv;

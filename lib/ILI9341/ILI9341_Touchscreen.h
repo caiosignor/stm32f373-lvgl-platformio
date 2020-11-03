@@ -1,6 +1,6 @@
 //	MIT License
 //
-//	Copyright (c) 2017 Matej Artnak
+//	Copyright (c) 2020 Carlos Signor
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a copy
 //	of this software and associated documentation files (the "Software"), to deal
@@ -34,65 +34,6 @@
 //
 //
 //-----------------------------------
-//	How to use this library
-//-----------------------------------
-//
-//	-If using MCUs other than STM32F7 you will have to change the #include "stm32f7xx_hal.h" in the ILI9341_Touchscreen.h to your respective .h file
-//	-define GPIO inputs and outputs then map the Pins and Ports inside the ILI9341_Touchscreen.h
-//	-Library does not require any initialization calls apart from GPIO initialization. Initialize GPIOs before calling library functions!
-//
-//		Touchpad GPIO defines
-//			Outputs:
-//				CLK
-//				MOSI
-//				CS
-//
-//			Inputs:
-//				IRQ
-//				MISO
-//
-//
-//	-Touchpad library bitbangs SPI interface and only requires basic GPIOs.
-//	-Setting GPIOs as FREQ_VERY_HIGH Recommended
-//
-//	-Warning! Library is written for "ILI9341_Set_Rotation(SCREEN_VERTICAL_1)"	(See ILI9341_STM32_Driver for information about function)
-//	-If using different layout you will have to Re-Map X and Y coordinates of the Screen
-//
-//
-//	-NO_OF_POSITION_SAMPLES makes location output less noisy but increases reading time. Increase and decrease to your liking
-//
-//----------EXAMPLE------------------
-/*
-if(TP_Touchpad_Pressed())
-	{					
-		uint16_t x_pos = 0;
-		uint16_t y_pos = 0;
-		
-		uint16_t position_array[2];
-		if(TP_Read_Coordinates(position_array) == TOUCHPAD_DATA_OK)
-		{
-		x_pos = position_array[0];
-		y_pos = position_array[1];
-		}							
-	}
-*/
-//-----------------------------------
-
-#ifndef TOUCH_H
-#define TOUCH_H
-
-#include "User_Conf.h"
-
-#define CMD_RDY 0X90
-#define CMD_RDX 0XD0
-
-//RETURN VALUES FOR TP_Touchpad_Pressed
-#define TOUCHPAD_NOT_PRESSED 0
-#define TOUCHPAD_PRESSED 1
-
-//RETURN VALUES FOR TP_Read_Coordinates
-#define TOUCHPAD_DATA_OK 1
-#define TOUCHPAD_DATA_NOISY 0
 
 //HARDCODED CALIBRATION, CHANGE IF REQUIRED
 #define X_OFFSET 13
@@ -106,18 +47,13 @@ if(TP_Touchpad_Pressed())
 #define X_TRANSLATION 273
 #define Y_TRANSLATION 204
 
-//In order to increase accuracy of location reads library samples
-//NO_OF_POSITION_SAMPLES numbers of locations and averages them
-//If library runs too slow decrease NO_OF_POSITION_SAMPLES, but
-//expect inreasingly noisy or incorrect locations returned
-
-#define NO_OF_POSITION_SAMPLES 1000
+#define NO_OF_POSITION_SAMPLES 10
 
 //Internal Touchpad command, do not call directly
-uint16_t TP_Read(void);
+// uint8_t TP_Read(void);
 
 //Internal Touchpad command, do not call directly
-void TP_Write(uint8_t value);
+// void TP_Write(uint8_t value);
 
 //Read coordinates of touchscreen press. Position[0] = X, Position[1] = Y
 uint8_t TP_Read_Coordinates(uint16_t Coordinates[2]);
@@ -125,4 +61,4 @@ uint8_t TP_Read_Coordinates(uint16_t Coordinates[2]);
 //Check if Touchpad was pressed. Returns TOUCHPAD_PRESSED (1) or TOUCHPAD_NOT_PRESSED (0)
 uint8_t TP_Touchpad_Pressed(void);
 
-#endif
+// #endif

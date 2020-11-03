@@ -69,11 +69,6 @@
  *   Touch Interface
  ***********************/
 
-#define USE_TOUCH_XPT2046 1
-#if USE_TOUCH_XPT2046
-
-#include "XPT_Commands.h"
-
 /** Touch Clock SPI Port **/
 #define TP_CLK_PORT GPIOA
 /** Touch Clock SPI Pin **/
@@ -92,12 +87,9 @@
 #define TP_MOSI_PIN GPIO_PIN_3
 
 /** Enable Interrupt Pin of Touch **/
-#define USE_TOUCH_INTERRUPT 1
+#define USE_TOUCH_INTERRUPT 0
 #if USE_TOUCH_INTERRUPT
-#define PEN_IRQ_Port TOUCH_PEN_GPIO_Port
-#define PEN_IRQ_Pin TOUCH_PEN_Pin
-#define IRQ_Pin_State() HAL_GPIO_ReadPin(PEN_IRQ_Port, PEN_IRQ_Pin)
-#endif
-
+#define PEN_IRQ_PORT GPIOA
+#define PEN_IRQ_Pin  T_IRQ_Pin
 #endif
 #endif

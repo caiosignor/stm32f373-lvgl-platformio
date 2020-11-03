@@ -1,12 +1,11 @@
 #include "lvgl.h"
 #include "ILI9341_Touchscreen.h"
 #include "ILI9341_STM32_Driver.h"
-// #include "ILI9341_GFX.h"
 #include "main.h"
 #include "gpio.h"
 #include "usart.h"
 
-#define BASE_TEMPO 5 //ms
+#define BASE_TEMPO 100 //ms
 
 uint32_t tempo;
 
@@ -73,35 +72,40 @@ void lv_ex_btn_1(void)
     lv_obj_t *tab_fft = lv_tabview_add_tab(tab, "FFT");
 
     lv_obj_t *botao = lv_btn_create(tab_graph, NULL);
-    lv_obj_t *botao2 = lv_btn_create(tab_graph, NULL);
+    // lv_obj_t *botao2 = lv_btn_create(tab_graph, NULL);
 
     lv_obj_align(botao, NULL, LV_ALIGN_IN_TOP_LEFT, 0, 0);
-    lv_obj_align(botao2, NULL, LV_ALIGN_IN_TOP_RIGHT, 0, 70);
+    // lv_obj_align(botao2, NULL, LV_ALIGN_IN_TOP_RIGHT, 0, 70);
     lv_obj_set_event_cb(botao, event_handler);
-    lv_obj_set_event_cb(botao2, event_handler);
+    // lv_obj_set_event_cb(botao2, event_handler);
 
     lv_obj_t *label_botao = lv_label_create(botao, NULL);
     lv_label_set_text(label_botao, "Botao");
 
-    lv_obj_t *label_botao2 = lv_label_create(botao2, NULL);
-    lv_label_set_text(label_botao2, "Botao2");
+    // lv_obj_t *label_botao2 = lv_label_create(botao2, NULL);
+    // lv_label_set_text(label_botao2, "Botao2");
 
-    // lv_obj_t *preload = lv_spinner_create(tab_graph, NULL);
-    // lv_obj_set_size(preload, 100, 100);
-    // lv_obj_align(preload, NULL, LV_ALIGN_CENTER, 0, 0);
-    // lv_spinner_set_spin_time(preload, 500);
-    // lv_spinner_set_dir(preload, LV_SPINNER_DIR_FORWARD);
+    lv_obj_t *preload = lv_spinner_create(tab_graph, NULL);
+    lv_obj_set_size(preload, 100, 100);
+    lv_obj_align(preload, NULL, LV_ALIGN_CENTER, 0, 0);
+    lv_spinner_set_spin_time(preload, 500);
+    lv_spinner_set_dir(preload, LV_SPINNER_DIR_FORWARD);
 }
 
 bool my_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
     uint16_t coordenadas[2];
+
     if (TP_Read_Coordinates(coordenadas))
     {                                    //se houver evento de toque, a função retorna true e armazena a posição em t_x e t_y
         data->state = LV_INDEV_STATE_PR; //como houve evento, mudamos state para o tipo do evento. No caso do touchscreen, LV_INDEV_STATE_PR
         data->point.x = coordenadas[0];  //atribuimos à struct a posição em que o evento foi gerado
         data->point.y = coordenadas[1];  //o mesmo para y
+        // char tx[32];
+        // size_t len = sprintf(tx, "touch pressionado\n");
+        // HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
     }
+
     else
     {
         data->state = LV_INDEV_STATE_REL; //caso contrário, zera tudo.

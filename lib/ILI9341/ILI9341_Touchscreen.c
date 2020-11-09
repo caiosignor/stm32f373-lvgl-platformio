@@ -101,7 +101,6 @@ uint16_t TP_Write(uint8_t value)
 		;
 	HAL_GPIO_WritePin(TOUCH_CS_GPIO_Port, TOUCH_CS_Pin, GPIO_PIN_RESET);
 	HAL_SPI_Transmit(HSPI_INSTANCE, (uint8_t *)&value, 1, 10000);
-	HAL_Delay(1);
 	HAL_SPI_Receive(HSPI_INSTANCE, (uint8_t *)&i, 1, 1000);
 	HAL_GPIO_WritePin(TOUCH_CS_GPIO_Port, TOUCH_CS_Pin, GPIO_PIN_SET);
 	while ((HSPI_INSTANCE)->State != HAL_SPI_STATE_READY)
@@ -122,6 +121,12 @@ uint8_t TP_Read_Coordinates(uint16_t Coordinates[2])
 	// while (samples > 0 && TP_Touchpad_Pressed())
 	while (samples > 0)
 	{
+
+		// char tx[32];
+		// size_t len = sprintf(tx, "oidasdadas\n");
+		// size_t len = sprintf(tx, "%d, %d\n", rawx, rawy);
+		// HAL_UART_Transmit(HSPI_INSTANCE, (uint8_t *)tx, len, 1000);
+
 		const uint8_t cmd_read_y = XPT_START_BIT | XPT_Y_POS_BIT;
 		const uint8_t cmd_read_x = XPT_START_BIT | XPT_X_POS_BIT;
 
@@ -131,9 +136,6 @@ uint8_t TP_Read_Coordinates(uint16_t Coordinates[2])
 
 		rawx = TP_Write(cmd_read_x);
 
-		char tx[32];
-		size_t len = sprintf(tx, "%d, %d\n", rawx, rawy);
-		HAL_UART_Transmit(HSPI_INSTANCE, (uint8_t *)tx, len, 1000);
 		avg_x += rawx;
 		calculating_x += rawx;
 		samples--;
@@ -182,6 +184,8 @@ uint8_t TP_Read_Coordinates(uint16_t Coordinates[2])
 uint8_t TP_Touchpad_Pressed(void)
 {
 	const uint8_t comand = XPT_START_BIT;
+	HAL_Delay(10);
+	// TP_Write(comand);
 	TP_Write(comand);
 	if (!IRQ_Pin_State())
 	{

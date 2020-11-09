@@ -5,7 +5,7 @@
 #include "gpio.h"
 #include "usart.h"
 
-#define BASE_TEMPO 100 //ms
+#define BASE_TEMPO 10 //ms
 
 uint32_t tempo;
 
@@ -54,6 +54,44 @@ void ili9341_flush(lv_disp_drv_t *drv, const lv_area_t *area, const lv_color_t *
     lv_disp_flush_ready(drv);
 }
 
+void btn_state_handle(const char *bt_label, lv_btn_state_t state)
+{
+    char tx[32];
+    size_t len;
+    switch (state)
+    {
+    case LV_BTN_STATE_RELEASED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_RELEASED\n", bt_label);
+        break;
+    case LV_BTN_STATE_PRESSED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_PRESSED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_RELEASED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_RELEASED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_PRESSED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_PRESSED\n", bt_label);
+        break;
+    case LV_BTN_STATE_DISABLED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_DISABLED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_DISABLED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_DISABLED\n", bt_label);
+        break;
+
+    default:
+        break;
+    }
+    HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
+}
+
+void bt1_handler(lv_obj_t *obj, lv_event_t event)
+{
+    lv_btn_state_t bt_state = lv_btn_get_state(obj);
+    btn_state_handle("Botao", bt_state);
+    return;
+}
+
 static void event_handler(lv_obj_t *obj, lv_event_t event)
 {
     if (event == LV_INDEV_STATE_PR)
@@ -76,7 +114,7 @@ void lv_ex_btn_1(void)
 
     lv_obj_align(botao, NULL, LV_ALIGN_IN_TOP_LEFT, 0, 0);
     // lv_obj_align(botao2, NULL, LV_ALIGN_IN_TOP_RIGHT, 0, 70);
-    lv_obj_set_event_cb(botao, event_handler);
+    lv_obj_set_event_cb(botao, bt1_handler);
     // lv_obj_set_event_cb(botao2, event_handler);
 
     lv_obj_t *label_botao = lv_label_create(botao, NULL);
@@ -96,14 +134,16 @@ bool my_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
     uint16_t coordenadas[2];
 
-    if (TP_Read_Coordinates(coordenadas))
-    {                                    //se houver evento de toque, a função retorna true e armazena a posição em t_x e t_y
-        data->state = LV_INDEV_STATE_PR; //como houve evento, mudamos state para o tipo do evento. No caso do touchscreen, LV_INDEV_STATE_PR
-        data->point.x = coordenadas[0];  //atribuimos à struct a posição em que o evento foi gerado
-        data->point.y = coordenadas[1];  //o mesmo para y
-        // char tx[32];
-        // size_t len = sprintf(tx, "touch pressionado\n");
-        // HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
+    if (TP_Touchpad_Pressed())
+    {
+        TP_Read_Coordinates(coordenadas); //se houver evento de toque, a função retorna true e armazena a posição em t_x e t_y
+        data->state = LV_INDEV_STATE_PR;  //como houve evento, mudamos state para o tipo do evento. No caso do touchscreen, LV_INDEV_STATE_PR
+        data->point.x = coordenadas[0];   //atribuimos à struct a posição em que o evento foi gerado
+        data->point.y = coordenadas[1];   //o mesmo para y
+        // HAL_Delay(100);
+        char tx[32];
+        size_t len = sprintf(tx, "touch pressionado  %d, %d\n", coordenadas[0], coordenadas[1]);
+        HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
     }
 
     else

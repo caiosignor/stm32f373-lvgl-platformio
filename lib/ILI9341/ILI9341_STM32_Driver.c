@@ -121,6 +121,14 @@ void ILI9341_Write_Data(uint8_t Data)
 	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
 }
 
+void ILI9341_Write_Array(uint8_t Data[], size_t len)
+{
+	HAL_GPIO_WritePin(LCD_DC_PORT, LCD_DC_PIN, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_RESET);
+	HAL_SPI_Transmit(HSPI_INSTANCE, Data, len, 1000);
+	HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+}
+
 /* Set Address - Location block - to draw into */
 void ILI9341_Set_Address(uint16_t X1, uint16_t Y1, uint16_t X2, uint16_t Y2)
 {

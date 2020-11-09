@@ -51,12 +51,16 @@
 
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC
+#define TOUCH_PEN_Pin GPIO_PIN_4
+#define TOUCH_PEN_GPIO_Port GPIOA
 #define LCD_DC_Pin GPIO_PIN_9
 #define LCD_DC_GPIO_Port GPIOA
 #define RST_Pin GPIO_PIN_10
 #define RST_GPIO_Port GPIOA
 #define LCD_CS_Pin GPIO_PIN_11
 #define LCD_CS_GPIO_Port GPIOA
+#define TOUCH_CS_Pin GPIO_PIN_12
+#define TOUCH_CS_GPIO_Port GPIOA
 
 /* ########################## Assert Selection ############################## */
 /**

@@ -1,104 +1,206 @@
 #include "lvgl.h"
+#include "ILI9341_Touchscreen.h"
 #include "ILI9341_STM32_Driver.h"
-// #include "ILI9341_GFX.h"
 #include "main.h"
 #include "gpio.h"
 #include "usart.h"
-#define BASE_TEMPO 5 //ms
+
+#define BASE_TEMPO 10 //ms
 
 uint32_t tempo;
 
-//callback para copiar o buffer para uma área específica do display.
-void my_flush_cb(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_t *color_p)
+void ili9341_flush(lv_disp_drv_t *drv, const lv_area_t *area, const lv_color_t *color_p)
 {
-    /*The most simple case (but also the slowest) to put all pixels to the screen one-by-one*/
-    int32_t x, y;
-    for (y = area->y1; y <= area->y2; y++)
+    if (area->x2 < 0 || area->y2 < 0 || area->x1 > (LV_HOR_RES_MAX - 1) || area->y1 > (LV_VER_RES_MAX - 1))
     {
-        for (x = area->x1; x <= area->x2; x++)
-        {
-            ILI9341_Draw_Pixel(x, y, color_p->ch.blue);
-            // ILI9341_Draw_Pixel(x, y, color_p->ch.blue + color_p->ch.red + color_p->ch.green_h + color_p->ch.green_l);
-            // ILI9341_Draw_Pixel(x, y, color_p->ch.blue + color_p->ch.red + color_p->ch.green);
-            // ILI9341_Draw_Pixel(x, y, color_p->ch.blue + color_p->ch.red + color_p->ch.green);
-            // put_px(x, y, *color_p)
-            color_p++;
-        }
+        lv_disp_flush_ready(drv);
+        return;
     }
 
-    /* IMPORTANT!!!
-     * Inform the graphics library that you are ready with the flushing*/
-    lv_disp_flush_ready(disp_drv);
+    /* Truncate the area to the screen */
+    int32_t act_x1 = area->x1 < 0 ? 0 : area->x1;
+    int32_t act_y1 = area->y1 < 0 ? 0 : area->y1;
+    int32_t act_x2 = area->x2 > LV_HOR_RES_MAX - 1 ? LV_HOR_RES_MAX - 1 : area->x2;
+    int32_t act_y2 = area->y2 > LV_VER_RES_MAX - 1 ? LV_VER_RES_MAX - 1 : area->y2;
+
+    int32_t y;
+    uint8_t data[4];
+    int32_t len = len = (act_x2 - act_x1 + 1) * 2;
+    lv_coord_t w = (area->x2 - area->x1) + 1;
+
+    /* window horizontal */
+    ILI9341_Write_Command(ILI9341_CASET);
+    data[0] = act_x1 >> 8;
+    data[1] = act_x1;
+    data[2] = act_x2 >> 8;
+    data[3] = act_x2;
+    ILI9341_Write_Array(data, 4);
+
+    /* window vertical */
+    ILI9341_Write_Command(ILI9341_PASET);
+    data[0] = act_y1 >> 8;
+    data[1] = act_y1;
+    data[2] = act_y2 >> 8;
+    data[3] = act_y2;
+    ILI9341_Write_Array(data, 4);
+
+    ILI9341_Write_Command(ILI9341_RAMWR);
+    for (y = act_y1; y <= act_y2; y++)
+    {
+        ILI9341_Write_Array((uint8_t *)color_p, len);
+        color_p += w;
+    }
+
+    lv_disp_flush_ready(drv);
+}
+
+void btn_state_handle(const char *bt_label, lv_btn_state_t state)
+{
+    char tx[32];
+    size_t len;
+    switch (state)
+    {
+    case LV_BTN_STATE_RELEASED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_RELEASED\n", bt_label);
+        break;
+    case LV_BTN_STATE_PRESSED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_PRESSED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_RELEASED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_RELEASED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_PRESSED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_PRESSED\n", bt_label);
+        break;
+    case LV_BTN_STATE_DISABLED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_DISABLED\n", bt_label);
+        break;
+    case LV_BTN_STATE_CHECKED_DISABLED:
+        len = sprintf(tx, "%s -> LV_BTN_STATE_CHECKED_DISABLED\n", bt_label);
+        break;
+
+    default:
+        break;
+    }
+    HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
+}
+
+void bt1_handler(lv_obj_t *obj, lv_event_t event)
+{
+    lv_btn_state_t bt_state = lv_btn_get_state(obj);
+    btn_state_handle("Botao", bt_state);
+    return;
+}
+
+static void event_handler(lv_obj_t *obj, lv_event_t event)
+{
+    if (event == LV_INDEV_STATE_PR)
+    {
+        char txt[32];
+        size_t len = sprintf(txt, "clicou no botao1\n");
+        HAL_UART_Transmit(&huart1, (uint8_t *)txt, len, 1000);
+    }
 }
 
 void lv_ex_btn_1(void)
 {
-    lv_obj_t *label;
-    lv_obj_t *btn1 = lv_btn_create(lv_scr_act(), NULL);
-    lv_obj_align(btn1, NULL, LV_ALIGN_CENTER, 0, -40);
-    label = lv_label_create(btn1, NULL);
-    lv_label_set_text(label, "Primeiro Botao");
+
+    lv_obj_t *tab = lv_tabview_create(lv_scr_act(), NULL);
+    lv_obj_t *tab_graph = lv_tabview_add_tab(tab, "Grafico");
+    lv_obj_t *tab_fft = lv_tabview_add_tab(tab, "FFT");
+
+    lv_obj_t *botao = lv_btn_create(tab_graph, NULL);
+    // lv_obj_t *botao2 = lv_btn_create(tab_graph, NULL);
+
+    lv_obj_align(botao, NULL, LV_ALIGN_IN_TOP_LEFT, 0, 0);
+    // lv_obj_align(botao2, NULL, LV_ALIGN_IN_TOP_RIGHT, 0, 70);
+    lv_obj_set_event_cb(botao, bt1_handler);
+    // lv_obj_set_event_cb(botao2, event_handler);
+
+    lv_obj_t *label_botao = lv_label_create(botao, NULL);
+    lv_label_set_text(label_botao, "Botao");
+
+    // lv_obj_t *label_botao2 = lv_label_create(botao2, NULL);
+    // lv_label_set_text(label_botao2, "Botao2");
+
+    lv_obj_t *preload = lv_spinner_create(tab_graph, NULL);
+    lv_obj_set_size(preload, 100, 100);
+    lv_obj_align(preload, NULL, LV_ALIGN_CENTER, 0, 0);
+    lv_spinner_set_spin_time(preload, 500);
+    lv_spinner_set_dir(preload, LV_SPINNER_DIR_FORWARD);
+}
+
+bool my_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
+{
+    uint16_t coordenadas[2];
+
+    if (TP_Touchpad_Pressed())
+    {
+        TP_Read_Coordinates(coordenadas); //se houver evento de toque, a função retorna true e armazena a posição em t_x e t_y
+        data->state = LV_INDEV_STATE_PR;  //como houve evento, mudamos state para o tipo do evento. No caso do touchscreen, LV_INDEV_STATE_PR
+        data->point.x = coordenadas[0];   //atribuimos à struct a posição em que o evento foi gerado
+        data->point.y = coordenadas[1];   //o mesmo para y
+        // HAL_Delay(100);
+        char tx[32];
+        size_t len = sprintf(tx, "touch pressionado  %d, %d\n", coordenadas[0], coordenadas[1]);
+        HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
+    }
+
+    else
+    {
+        data->state = LV_INDEV_STATE_REL; //caso contrário, zera tudo.
+        data->point.x = 0;
+        data->point.y = 0;
+    }
+    return false; /*No buffering now so no more data read*/
 }
 
 void lv_setup()
 {
-    lv_init();
     ILI9341_Init(); //initial driver setup to drive ili9341
+    char txt[32];
+    size_t len = sprintf(txt, "oi\n");
 
+    lv_init();
+
+    HAL_UART_Transmit(&huart1, (uint8_t *)txt, len, 1000);
     //buffer interno para do display
     static lv_disp_buf_t disp_buff;
 
     //inicializa os buffers internos.
     static lv_color_t buf_1[LV_HOR_RES_MAX * 10];
-    static lv_color_t buf_2[LV_HOR_RES_MAX * 10];
-    lv_disp_buf_init(&disp_buff, buf_1, NULL, LV_HOR_RES * 10);
-    // lv_disp_buf_init(&disp_buff, buf_1, buf_2, LV_HOR_RES_MAX * 10);
+    lv_disp_buf_init(&disp_buff, buf_1, NULL, LV_HOR_RES_MAX * 10);
 
     // //informações do driver do display; contém as callbacks necessárias para interagir com o display;
     lv_disp_drv_t disp_drv;
     //inicializacao basica
     lv_disp_drv_init(&disp_drv);
 
-    // disp_drv.hor_res = 240;
-    // disp_drv.ver_res = 320;
-
     //configura o driver do display;
     disp_drv.buffer = &disp_buff;
-    disp_drv.flush_cb = my_flush_cb;
-    // disp_drv.flush_cb = ili9341_flush;
+    disp_drv.flush_cb = ili9341_flush;
 
     //registra o driver do display no objeto do display.
     lv_disp_drv_register(&disp_drv);
 
-    lv_obj_t *label = lv_label_create(lv_scr_act(), NULL);
-    lv_label_set_text(label, "LVGL Test");
-    lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, 0);
+    //inicializacao e configuracao o touchscreen
+    lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = my_input_read; //callback de leitura
+    lv_indev_drv_register(&indev_drv);
 
     lv_ex_btn_1(); //inicializa os botões
 
     tempo = HAL_GetTick();
 }
 
-uint32_t tempo2;
-
 void lv_loop()
 {
-    // if (tempo > HAL_GetTick())
-    // {
-    //     lv_tick_inc(BASE_TEMPO);
-    //     tempo = HAL_GetTick() + BASE_TEMPO;
-    //     lv_task_handler();
-    // }
-
-    lv_task_handler();
-    HAL_Delay(50);
-
-    // ILI9341_Fill_Screen(DARKGREEN);
-    // ILI9341_Set_Rotation(SCREEN_HORIZONTAL_2);
-    // ILI9341_Draw_Text("FPS TEST, 40 loop 2 screens", 10, 10, BLACK, 5, WHITE);
-    // ILI9341_Draw_Filled_Rectangle_Coord(5, 10, 25, 30, WHITE);
-    // ILI9341_Fill_Screen(DARKGREEN);
-
-    // HAL_Delay(500);
-    // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    if (tempo < HAL_GetTick())
+    {
+        lv_tick_inc(BASE_TEMPO);
+        tempo = HAL_GetTick() + BASE_TEMPO;
+        lv_task_handler();
+    }
 }

@@ -140,10 +140,6 @@ bool my_input_read(lv_indev_drv_t *drv, lv_indev_data_t *data)
         data->state = LV_INDEV_STATE_PR;  //como houve evento, mudamos state para o tipo do evento. No caso do touchscreen, LV_INDEV_STATE_PR
         data->point.x = coordenadas[0];   //atribuimos à struct a posição em que o evento foi gerado
         data->point.y = coordenadas[1];   //o mesmo para y
-        // HAL_Delay(100);
-        char tx[32];
-        size_t len = sprintf(tx, "touch pressionado  %d, %d\n", coordenadas[0], coordenadas[1]);
-        HAL_UART_Transmit(&huart1, (uint8_t *)tx, len, 1000);
     }
 
     else
